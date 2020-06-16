@@ -1,0 +1,157 @@
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout"
+      layout:decorator="admin/layout">
+
+
+<div layout:fragment="content">
+
+
+
+    <div class="bf-main">
+        <div th:replace="admin/fragment/sidebar::fragSidebar"></div>
+        <div id="app" class="bf-body">
+            <form>
+                <div id="about-page" class="bf-posts-grid d-flex">
+
+                    <h4>角色管理</h4>
+                    <a style="float: left;width:10%" href="#" v-on:click="add()" class="btn btn-sm btn-link">新增
+                        <strong>+</strong></a>
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>角色名</th>
+                            <th>角色描述</th>
+                            <th>角色状态</th>
+                            <th>创建时间</th>
+                            <th>更新时间</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr v-for="role in roles">
+                            <td>{{role.id}}</td>
+                            <td>{{role.name}}</td>
+                            <td>{{role.description}}</td>
+                            <td>{{role.available}}</td>
+                            <td>{{role.createTime}}</td>
+                            <td>{{role.updateTime}}</td>
+                            <td>
+                                <a href="#" v-on:click="edit(role.id)">编辑</a>
+                                <a href="#" v-on:clcik="remove(role.id)">删除</a>
+                                <a href="#" v-on:click="remove(role.id)">删除</a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+            <div>
+                <div class="modal fade" id="modal-role" tabindex="-1" role="dialog" aria-labelledby="notificationsLabel"
+                     aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h4 class="modal-title" id="settingsLabel">{{role.editType}}角色</h4>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><i class="fa fa-times"></i></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label class="form-group-label">
+                                        角色名
+                                    </label>
+                                    <input type="text" class="form-control" v-model="role.name">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-group-label">
+                                        角色描述
+                                    </label>
+                                    <input type="text" class="form-control" v-model="role.description">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-group-label">
+                                        角色状态
+                                    </label>
+                                    <input type="text" class="form-control" v-model="role.available">
+                                </div>
+                                <div class="modal-footer d-flex">
+                                    <button class="btn btn-link btn-sm btn-rounded ml-auto" type="button" data-dismiss="modal">
+                                        取消
+                                    </button>
+                                    <buttom class="btn btn-primary btn-sm btn-rounded" type="button" v-on:click="save()">保存
+                                    </buttom>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="bodyAssets">
+    <script>
+        Vue.use(window.vuelidate.default)
+
+        const app = new Vue({
+            el: '#app',
+            data: {
+                roles: {},
+                role: {editType:"新增"}
+            },
+            methods: {
+                load: function () {
+                    axios.get(webRoot + 'api/roles')
+                        .then(response => {
+                        this.roles = response.data;
+                }).catch(function (error) { toastr.error(error); });
+                },
+                edit:function (id) {
+                    axios.get(webRoot + 'api/roles/'+id)
+                        .then(response => {
+                        this.role = response.data;
+                        this.role.editType = "编辑";
+                        }).catch(function (error) { toastr.error(error); });
+                    $("#modal-role").modal();
+                },
+                save: function () {
+                    var posturl =webRoot + 'api/roles/save' ;
+                    var role = this.role;
+                    console.log(role.id);
+                    axios.post(posturl, role)
+                        .then(function (response) {
+                            toastr.success('保存成功');
+                            axios.get(webRoot + 'api/roles')
+                                .then(response => {
+                                app.$data.roles = response.data;
+                            }).catch(function (error) { toastr.error(error); });
+                            //app.$options.methods.load();
+                            $("#modal-role").modal("hide");
+                        }).catch(function (error) {toastr.error(error); });
+
+                    return false;
+                },
+                add: function () {
+                    this.role = {editType:"新增"};
+                    $("#modal-role").modal();
+                },
+                remove:function (id) {
+                    var result = confirm("Please confirm removing this role");
+                    if (result) {
+                        axios.delete(webRoot + 'api/roles/remove/' + id)
+                            .then(response => {
+                            toastr.success(response.data.rspMsg);
+                        this.load();
+                        }).catch(function (error) { toastr.error(error); });
+                    }
+                    return false;
+                }
+            },
+            beforeMount() {
+                this.load()
+            }
+        });
+
+    </script>
+</th:block>
